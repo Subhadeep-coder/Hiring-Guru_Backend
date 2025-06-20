@@ -1,21 +1,20 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  UseGuards, 
-  Req, 
-  Res, 
-  HttpStatus 
+import {
+  Controller,
+  Get,
+  Post,
+  UseGuards,
+  Req,
+  Res,
+  HttpStatus
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { GitHubAuthGuard } from './guards/github-auth.guard';
-import { AuthenticatedGuard } from './guards/auth.guard';
 
 @Controller('user/auth')
 export class AuthController {
-  constructor(private configService: ConfigService) {}
+  constructor(private configService: ConfigService) { }
 
   // Google OAuth Routes
   @Get('google')
@@ -27,8 +26,18 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
   async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
-    const frontendUrl = this.configService.get('FRONTEND_URL');
-    res.redirect(`${frontendUrl}/dashboard`);
+    req.login(req.user!, (err) => {
+      if (err)
+        res.redirect(`http://localhost:3000/dashboard?auth=error`);
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          return res.redirect('http://localhost:5173/customer?auth=error');
+        }
+
+        return res.redirect('http://localhost:5173/customer?auth=success');
+      });
+    })
   }
 
   // GitHub OAuth Routes  
@@ -60,14 +69,14 @@ export class AuthController {
           message: 'Logout failed',
         });
       }
-      
+
       req.session.destroy((err) => {
         if (err) {
           return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
             message: 'Session destruction failed',
           });
         }
-        
+
         res.clearCookie('connect.sid');
         res.status(HttpStatus.OK).json({
           message: 'Logout successful',
