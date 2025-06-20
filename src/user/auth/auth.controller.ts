@@ -50,7 +50,18 @@ export class AuthController {
   @Get('github/callback')
   @UseGuards(GitHubAuthGuard)
   async githubAuthRedirect(@Req() req: Request, @Res() res: Response) {
-    res.redirect(`http://localhost:3000/dashboard`);
+    req.login(req.user!, (err) => {
+      if (err)
+        res.redirect(`http://localhost:3000/dashboard?auth=error`);
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          return res.redirect('http://localhost:5173/customer?auth=error');
+        }
+
+        return res.redirect('http://localhost:5173/customer?auth=success');
+      });
+    })
   }
 
   @Get('status')
