@@ -1,0 +1,477 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+generator docs {
+  provider = "node node_modules/prisma-docs-generator"
+  output   = "../libs/docs/src/db"
+}
+
+generator dbml {
+  provider   = "prisma-dbml-generator"
+  output     = "./"
+  outputName = "schema.dbml"
+}
+
+generator markdown {
+  provider = "prisma-markdown"
+  output   = "./ERD.md"
+  title    = "Hiring Guru"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// User model with authentication details
+model User {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  email         String   @unique
+  name          String?
+  avatar        String?
+  
+  authProvider      String   // 'google', 'github'
+  authProviderId    String
+  isActive          Boolean  @default(true)
+  
+  // User preferences
+  preferences   UserPreferences?
+  
+  // User's hiring processes
+  hiringProcesses HiringProcess[]
+  
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@map("users")
+}
+
+// User preferences model
+model UserPreferences {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String   @unique @db.ObjectId
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Preferred company types (references to CompanyType)
+  preferredCompanyTypes String[] @db.ObjectId
+  companyTypes          CompanyType[] @relation(fields: [preferredCompanyTypes], references: [id])
+  
+  // Other preferences
+  difficultyLevel       String?  // "beginner", "intermediate", "advanced"
+  preferredTechStack    String[] // ["JavaScript", "Python", "Java", etc.]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("user_preferences")
+}
+
+// Admin managed company types
+model CompanyType {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique // "Startups", "Product MNCs", "Service MNCs", etc.
+  description String?
+  isActive    Boolean  @default(true)
+  
+  // Round templates for this company type
+  roundTemplates RoundTemplate[]
+  
+  // Users who prefer this company type
+  preferredByUsers String[] @db.ObjectId
+  users            UserPreferences[] @relation(fields: [preferredByUsers], references: [id])
+  
+  // Hiring processes of this type
+  hiringProcesses HiringProcess[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("company_types")
+}
+
+// Template for rounds in a company type
+model RoundTemplate {
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  name          String      // "Screening", "Technical", "Coding", "HR", etc.
+  description   String?
+  roundType     RoundType   // "SCREENING", "TECHNICAL", "CODING", "HR", "FINAL"
+  sequence      Int         // Order of rounds
+  timeLimit     Int         // Time limit in minutes
+  
+  // Company type this template belongs to
+  companyTypeId String      @db.ObjectId
+  companyType   CompanyType @relation(fields: [companyTypeId], references: [id], onDelete: Cascade)
+  
+  // Configuration for this round
+  config        Json?       // Flexible config for different round types
+  
+  // Actual rounds created from this template
+  rounds        Round[]
+  processRounds ProcessRound[]
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  @@map("round_templates")
+}
+
+// Hiring process instance
+model HiringProcess {
+  id              String      @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // User taking this process
+  userId          String      @db.ObjectId
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Company type for this process
+  companyTypeId   String      @db.ObjectId
+  companyType     CompanyType @relation(fields: [companyTypeId], references: [id])
+  
+  // Process status
+  status          ProcessStatus @default(IN_PROGRESS)
+  currentRound    Int         @default(1)
+  isCompleted     Boolean     @default(false)
+  configurationLocked Boolean @default(false) // Once started, can't modify
+  
+  // Custom round configuration for this specific process
+  customRoundConfig ProcessRoundConfig?
+  
+  // Rounds in this process (based on custom configuration)
+  rounds          Round[]
+  
+  // Final assessment
+  finalAssessment FinalAssessment?
+  
+  // Timestamps
+  startedAt       DateTime    @default(now())
+  completedAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@map("hiring_processes")
+}
+
+// Custom round configuration for each hiring process
+model ProcessRoundConfig {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Process this configuration belongs to
+  hiringProcessId String        @unique @db.ObjectId
+  hiringProcess   HiringProcess @relation(fields: [hiringProcessId], references: [id], onDelete: Cascade)
+  
+  // Ordered list of round configurations
+  roundConfigs    ProcessRound[]
+  
+  // Metadata about customization
+  isCustomized    Boolean       @default(false) // true if user modified default order
+  originalOrder   String[]      // Store original template order for reference
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@map("process_round_configs")
+}
+
+// Individual round configuration within a process
+model ProcessRound {
+  id              String             @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Configuration this round belongs to
+  configId        String             @db.ObjectId
+  config          ProcessRoundConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  
+  // Template this round is based on
+  templateId      String             @db.ObjectId
+  template        RoundTemplate      @relation(fields: [templateId], references: [id])
+  
+  // Custom ordering and settings
+  customSequence  Int                // User's custom order (1, 2, 3...)
+  isEnabled       Boolean            @default(true) // User can disable rounds
+  
+  // Custom settings (override template defaults if needed)
+  customTimeLimit Int?               // Override template time limit
+  customName      String?            // Custom name for this round
+  
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  
+  @@map("process_rounds")
+}
+
+// Individual round instance
+model Round {
+  id                String        @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Process this round belongs to
+  hiringProcessId   String        @db.ObjectId
+  hiringProcess     HiringProcess @relation(fields: [hiringProcessId], references: [id], onDelete: Cascade)
+  
+  // Template this round is based on
+  templateId        String        @db.ObjectId
+  template          RoundTemplate @relation(fields: [templateId], references: [id])
+  
+  // Round details (based on user's custom configuration)
+  sequence          Int           // User's custom sequence
+  status            RoundStatus   @default(NOT_STARTED)
+  roundName         String        // Can be custom or from template
+  
+  // Timing (can be customized)
+  timeLimit         Int           // in minutes (from template or custom)
+  timeSpent         Int?          // actual time spent in minutes
+  startedAt         DateTime?
+  completedAt       DateTime?
+  
+  // Preparation
+  preparationSkipped Boolean      @default(false)
+  preparationTime   Int?          // time spent in preparation
+  
+  // Questions and responses
+  questions         Question[]
+  responses         Response[]
+  
+  // AI interview specific
+  interviewData     InterviewData?
+  
+  // Coding round specific  
+  codingSubmissions CodingSubmission[]
+  
+  // Feedback and assessment
+  feedback          RoundFeedback?
+  
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  
+  @@map("rounds")
+}
+
+// Questions generated for a round
+model Question {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Round this question belongs to
+  roundId     String      @db.ObjectId
+  round       Round       @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  
+  // Question details
+  content     String
+  type        QuestionType // "MCQ", "SUBJECTIVE", "CODING", "BEHAVIORAL"
+  difficulty  String       // "easy", "medium", "hard"
+  category    String?      // "algorithms", "system-design", etc.
+  
+  // For MCQ questions
+  options     String[]
+  correctAnswer String?
+  
+  // For coding questions
+  constraints String?
+  examples    Json?
+  testCases   Json?
+  
+  // AI generation metadata
+  generatedBy String       // "openai", "claude", etc.
+  prompt      String?      // Original prompt used
+  
+  // Responses to this question
+  responses   Response[]
+  
+  createdAt   DateTime     @default(now())
+  
+  @@map("questions")
+}
+
+// User responses to questions
+model Response {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Question this response is for
+  questionId  String      @db.ObjectId
+  question    Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  // Round this response belongs to
+  roundId     String      @db.ObjectId
+  round       Round       @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  
+  // Response content
+  content     String
+  isCorrect   Boolean?    // For questions with definitive answers
+  score       Float?      // AI generated score
+  
+  // Timing
+  timeSpent   Int?        // in seconds
+  submittedAt DateTime    @default(now())
+  
+  @@map("responses")
+}
+
+// AI Interview specific data
+model InterviewData {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Round this interview belongs to
+  roundId         String   @unique @db.ObjectId
+  round           Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  
+  // Interview session details
+  sessionId       String   @unique
+  authToken       String   // For backend model connection
+  
+  // Conversation data
+  transcript      Json     // Full conversation transcript
+  audioRecording  String?  // URL to audio file if recorded
+  
+  // Analysis results
+  sentimentAnalysis Json?
+  confidenceScore   Float?
+  communicationScore Float?
+  technicalScore    Float?
+  
+  // Connection metadata
+  modelBackend    String   // Which AI model was used
+  connectionLogs  Json?    // Connection/disconnection logs
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("interview_data")
+}
+
+// Coding submissions
+model CodingSubmission {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Round this submission belongs to
+  roundId       String   @db.ObjectId
+  round         Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  
+  // Question this submission is for
+  questionId    String   @db.ObjectId
+  
+  // Submission details
+  code          String
+  language      String   // "javascript", "python", "java", etc.
+  
+  // Judge0 evaluation results
+  judge0Token   String?  // Judge0 submission token
+  status        String?  // "Accepted", "Wrong Answer", "Time Limit Exceeded", etc.
+  executionTime Float?   // in seconds
+  memoryUsed    Int?     // in KB
+  
+  // Test case results
+  testResults   Json     // Results from all test cases
+  score         Float?   // Overall score
+  
+  // Timestamps
+  submittedAt   DateTime @default(now())
+  evaluatedAt   DateTime?
+  
+  @@map("coding_submissions")
+}
+
+// Feedback for each round
+model RoundFeedback {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Round this feedback is for
+  roundId           String   @unique @db.ObjectId
+  round             Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  
+  // Scores (0-100)
+  overallScore      Float
+  technicalScore    Float?
+  communicationScore Float?
+  problemSolvingScore Float?
+  
+  // Feedback content
+  strengths         String[]
+  improvements      String[]
+  detailedFeedback  String
+  
+  // Eligibility assessment
+  eligibleForNext   Boolean
+  recommendedAction String   // "proceed", "retry", "additional_preparation"
+  
+  // AI generation metadata
+  generatedBy       String   // Which AI model generated this
+  confidence        Float?   // AI's confidence in the assessment
+  
+  createdAt         DateTime @default(now())
+  
+  @@map("round_feedback")
+}
+
+// Final assessment after completing all rounds
+model FinalAssessment {
+  id                String        @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Process this assessment is for
+  hiringProcessId   String        @unique @db.ObjectId
+  hiringProcess     HiringProcess @relation(fields: [hiringProcessId], references: [id], onDelete: Cascade)
+  
+  // Overall scores
+  overallScore      Float         // 0-100
+  technicalScore    Float
+  communicationScore Float
+  problemSolvingScore Float
+  
+  // Performance analysis
+  strongAreas       String[]
+  improvementAreas  String[]
+  
+  // Comprehensive report
+  executiveSummary  String
+  detailedAnalysis  String
+  recommendations   String[]
+  
+  // Hiring decision simulation
+  hiringDecision    String        // "hire", "maybe", "no_hire"
+  reasonsForDecision String[]
+  
+  // Comparison with industry standards
+  industryPercentile Float?       // Where user stands compared to others
+  
+  createdAt         DateTime      @default(now())
+  
+  @@map("final_assessments")
+}
+
+// Enums
+enum ProcessStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+enum RoundStatus {
+  NOT_STARTED
+  IN_PREPARATION
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+enum RoundType {
+  SCREENING
+  TECHNICAL
+  CODING
+  BEHAVIORAL
+  HR
+  SYSTEM_DESIGN
+  FINAL
+}
+
+enum QuestionType {
+  MCQ
+  SUBJECTIVE
+  CODING
+  BEHAVIORAL
+  SYSTEM_DESIGN
+}
