@@ -32,6 +32,7 @@ async function bootstrap() {
       resave: false,
       saveUninitialized: false,
       store: store,
+      name: "hiring-guru-token",
       cookie: {
         maxAge: 24 * 60 * 60 * 1000,
         httpOnly: true,
