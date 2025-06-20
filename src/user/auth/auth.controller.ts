@@ -41,8 +41,7 @@ export class AuthController {
   @Get('github/callback')
   @UseGuards(GitHubAuthGuard)
   async githubAuthRedirect(@Req() req: Request, @Res() res: Response) {
-    const frontendUrl = this.configService.get('FRONTEND_URL');
-    res.redirect(`${frontendUrl}/dashboard`);
+    res.redirect(`http://localhost:3000/dashboard`);
   }
 
   @Get('status')

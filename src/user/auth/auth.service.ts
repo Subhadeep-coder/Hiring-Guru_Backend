@@ -74,7 +74,7 @@ export class AuthService {
         const createUserDto: CreateUserDto = {
             name: oauthUser.name,
             email: oauthUser.email,
-            profilePictureUrl: oauthUser.profilePictureUrl,
+            avatar: oauthUser.profilePictureUrl,
             authProvider: oauthUser.authProvider,
             authProviderId: oauthUser.authProviderId,
             isActive: true,

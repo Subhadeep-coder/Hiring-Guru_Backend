@@ -9,7 +9,7 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsString()
-  profilePictureUrl?: string;
+  avatar?: string;
 
   @IsString()
   authProvider: string;
