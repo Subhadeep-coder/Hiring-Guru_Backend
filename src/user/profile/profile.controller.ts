@@ -4,13 +4,13 @@ import { AuthenticatedGuard } from '../auth/guards/auth.guard';
 import { UpdateUserPreferencesDto } from './dto/update-user-preferences.dto';
 import { CreateUserPreferencesDto } from './dto/create-user-preferences.dto';
 
+@UseGuards(AuthenticatedGuard)
 @Controller('user/profile')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) { }
 
   // Session Management
   @Get('profile')
-  @UseGuards(AuthenticatedGuard)
   getProfile(@Req() req: any) {
     return {
       user: req.user,
@@ -18,21 +18,21 @@ export class ProfileController {
     };
   }
 
-  @Post()
-  create(@Body() dto: CreateUserPreferencesDto) {
-    return this.profileService.create(dto);
-  }
+  // @Post()
+  // create(@Body() dto: CreateUserPreferencesDto) {
+  //   return this.profileService.create(dto);
+  // }
 
-  @Get(':userId')
-  findByUserId(@Req() req: any) {
-    return this.profileService.findByUserId(req.user.userId);
-  }
+  // @Get(':userId')
+  // findByUserId(@Req() req: any) {
+  //   return this.profileService.findByUserId(req.user.userId);
+  // }
 
-  @Patch(':userId')
-  update(
-    @Req() req: any,
-    @Body() dto: UpdateUserPreferencesDto,
-  ) {
-    return this.profileService.update(req.user.userId, dto);
-  }
+  // @Patch(':userId')
+  // update(
+  //   @Req() req: any,
+  //   @Body() dto: UpdateUserPreferencesDto,
+  // ) {
+  //   return this.profileService.update(req.user.userId, dto);
+  // }
 }

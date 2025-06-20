@@ -33,418 +33,433 @@ datasource db {
 
 // User model with authentication details
 model User {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  email         String   @unique
-  name          String?
-  avatar        String?
-  
-  authProvider      String   // 'google', 'github'
-  authProviderId    String
-  isActive          Boolean  @default(true)
-  
-  // User preferences
-  preferences   UserPreferences?
-  
-  // User's hiring processes
+  id     String  @id @default(auto()) @map("_id") @db.ObjectId
+  email  String  @unique
+  name   String?
+  avatar String?
+
+  authProvider   String // 'google', 'github'
+  authProviderId String
+  isActive       Boolean @default(true)
+
+  // User's custom assessment templates
+  customAssessments CustomAssessment[]
+
+  // User's hiring process attempts
   hiringProcesses HiringProcess[]
-  
+
   // Timestamps
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@map("users")
 }
 
-// User preferences model
-model UserPreferences {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId          String   @unique @db.ObjectId
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Preferred company types (references to CompanyType)
-  preferredCompanyTypes String[] @db.ObjectId
-  companyTypes          CompanyType[] @relation(fields: [preferredCompanyTypes], references: [id])
-  
-  // Other preferences
-  difficultyLevel       String?  // "beginner", "intermediate", "advanced"
-  preferredTechStack    String[] // ["JavaScript", "Python", "Java", etc.]
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  @@map("user_preferences")
-}
-
-// Admin managed company types
-model CompanyType {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String   @unique // "Startups", "Product MNCs", "Service MNCs", etc.
+// Predefined assessment templates (like Amazon SDE-1, Google SWE, etc.)
+model PredefinedAssessment {
+  id          String          @id @default(auto()) @map("_id") @db.ObjectId
+  name        String          @unique // "Amazon - SDE 1", "Google - Software Engineer", etc.
   description String?
-  isActive    Boolean  @default(true)
-  
-  // Round templates for this company type
-  roundTemplates RoundTemplate[]
-  
-  // Users who prefer this company type
-  preferredByUsers String[] @db.ObjectId
-  users            UserPreferences[] @relation(fields: [preferredByUsers], references: [id])
-  
-  // Hiring processes of this type
+  difficulty  DifficultyLevel // EASY, MEDIUM, HARD
+  isActive    Boolean         @default(true)
+  isPrime     Boolean         @default(false) // Premium assessments
+
+  // Total duration and round count
+  totalDuration Int // Total time in minutes
+  roundCount    Int // Number of rounds
+
+  // Round configuration for this assessment
+  rounds PredefinedRound[]
+
+  // Hiring processes using this template
   hiringProcesses HiringProcess[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  @@map("company_types")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("predefined_assessments")
 }
 
-// Template for rounds in a company type
-model RoundTemplate {
-  id            String      @id @default(auto()) @map("_id") @db.ObjectId
-  name          String      // "Screening", "Technical", "Coding", "HR", etc.
-  description   String?
-  roundType     RoundType   // "SCREENING", "TECHNICAL", "CODING", "HR", "FINAL"
-  sequence      Int         // Order of rounds
-  timeLimit     Int         // Time limit in minutes
-  
-  // Company type this template belongs to
-  companyTypeId String      @db.ObjectId
-  companyType   CompanyType @relation(fields: [companyTypeId], references: [id], onDelete: Cascade)
-  
-  // Configuration for this round
-  config        Json?       // Flexible config for different round types
-  
+// Rounds within predefined assessments
+model PredefinedRound {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  // Assessment this round belongs to
+  assessmentId String               @db.ObjectId
+  assessment   PredefinedAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  // Round details
+  roundType   RoundType
+  name        String // "Screening Round", "Coding Challenge", etc.
+  description String?
+  duration    Int // Duration in minutes
+  sequence    Int // Order of rounds (1, 2, 3...)
+
+  // Round configuration
+  config Json? // Flexible config for different round types
+
   // Actual rounds created from this template
-  rounds        Round[]
-  processRounds ProcessRound[]
-  
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  
-  @@map("round_templates")
+  rounds Round[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("predefined_rounds")
 }
 
-// Hiring process instance
+// Custom assessment templates created by users
+model CustomAssessment {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  // User who created this custom assessment
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String // "Frontend Developer Practice", "Full Stack Challenge", etc.
+  description String?
+  difficulty  DifficultyLevel
+
+  // Total duration and round count (calculated from rounds)
+  totalDuration Int // Total time in minutes
+  roundCount    Int // Number of rounds
+
+  // Custom round configuration
+  rounds CustomRound[]
+
+  // Hiring processes using this template
+  hiringProcesses HiringProcess[]
+
+  // Template metadata
+  isTemplate Boolean @default(true) // Can be used as template for new processes
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("custom_assessments")
+}
+
+// Rounds within custom assessments
+model CustomRound {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  // Assessment this round belongs to
+  assessmentId String           @db.ObjectId
+  assessment   CustomAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  // Round details
+  roundType   RoundType
+  name        String // Custom name given by user
+  description String?
+  duration    Int // Duration in minutes
+  sequence    Int // Order of rounds (1, 2, 3...)
+
+  // Round configuration
+  config Json? // Flexible config for different round types
+
+  // Actual rounds created from this template
+  rounds Round[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("custom_rounds")
+}
+
+// Hiring process instance (actual attempt by user)
 model HiringProcess {
-  id              String      @id @default(auto()) @map("_id") @db.ObjectId
-  
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
   // User taking this process
-  userId          String      @db.ObjectId
-  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Company type for this process
-  companyTypeId   String      @db.ObjectId
-  companyType     CompanyType @relation(fields: [companyTypeId], references: [id])
-  
-  // Process status
-  status          ProcessStatus @default(IN_PROGRESS)
-  currentRound    Int         @default(1)
-  isCompleted     Boolean     @default(false)
-  configurationLocked Boolean @default(false) // Once started, can't modify
-  
-  // Custom round configuration for this specific process
-  customRoundConfig ProcessRoundConfig?
-  
-  // Rounds in this process (based on custom configuration)
-  rounds          Round[]
-  
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Assessment type - either predefined or custom
+  assessmentType AssessmentType // PREDEFINED or CUSTOM
+
+  // Reference to predefined assessment (if using predefined)
+  predefinedAssessmentId String?               @db.ObjectId
+  predefinedAssessment   PredefinedAssessment? @relation(fields: [predefinedAssessmentId], references: [id])
+
+  // Reference to custom assessment (if using custom)
+  customAssessmentId String?           @db.ObjectId
+  customAssessment   CustomAssessment? @relation(fields: [customAssessmentId], references: [id])
+
+  // Process status and progress
+  status       ProcessStatus @default(NOT_STARTED)
+  currentRound Int           @default(1)
+  isCompleted  Boolean       @default(false)
+
+  // Configuration lock - once started, configuration cannot be changed
+  isLocked Boolean   @default(false)
+  lockedAt DateTime? // When the process was locked
+
+  // Frozen configuration snapshot (taken when process starts)
+  configSnapshot Json? // Snapshot of the assessment configuration
+
+  // Rounds in this process (copied from template when process starts)
+  rounds Round[]
+
   // Final assessment
   finalAssessment FinalAssessment?
-  
+
   // Timestamps
-  startedAt       DateTime    @default(now())
-  completedAt     DateTime?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  
+  startedAt   DateTime? // When first round was started
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
   @@map("hiring_processes")
 }
 
-// Custom round configuration for each hiring process
-model ProcessRoundConfig {
-  id              String        @id @default(auto()) @map("_id") @db.ObjectId
-  
-  // Process this configuration belongs to
-  hiringProcessId String        @unique @db.ObjectId
-  hiringProcess   HiringProcess @relation(fields: [hiringProcessId], references: [id], onDelete: Cascade)
-  
-  // Ordered list of round configurations
-  roundConfigs    ProcessRound[]
-  
-  // Metadata about customization
-  isCustomized    Boolean       @default(false) // true if user modified default order
-  originalOrder   String[]      // Store original template order for reference
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
-  @@map("process_round_configs")
-}
-
-// Individual round configuration within a process
-model ProcessRound {
-  id              String             @id @default(auto()) @map("_id") @db.ObjectId
-  
-  // Configuration this round belongs to
-  configId        String             @db.ObjectId
-  config          ProcessRoundConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
-  
-  // Template this round is based on
-  templateId      String             @db.ObjectId
-  template        RoundTemplate      @relation(fields: [templateId], references: [id])
-  
-  // Custom ordering and settings
-  customSequence  Int                // User's custom order (1, 2, 3...)
-  isEnabled       Boolean            @default(true) // User can disable rounds
-  
-  // Custom settings (override template defaults if needed)
-  customTimeLimit Int?               // Override template time limit
-  customName      String?            // Custom name for this round
-  
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-  
-  @@map("process_rounds")
-}
-
-// Individual round instance
+// Individual round instance in a hiring process
 model Round {
-  id                String        @id @default(auto()) @map("_id") @db.ObjectId
-  
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
   // Process this round belongs to
-  hiringProcessId   String        @db.ObjectId
-  hiringProcess     HiringProcess @relation(fields: [hiringProcessId], references: [id], onDelete: Cascade)
-  
-  // Template this round is based on
-  templateId        String        @db.ObjectId
-  template          RoundTemplate @relation(fields: [templateId], references: [id])
-  
-  // Round details (based on user's custom configuration)
-  sequence          Int           // User's custom sequence
-  status            RoundStatus   @default(NOT_STARTED)
-  roundName         String        // Can be custom or from template
-  
-  // Timing (can be customized)
-  timeLimit         Int           // in minutes (from template or custom)
-  timeSpent         Int?          // actual time spent in minutes
-  startedAt         DateTime?
-  completedAt       DateTime?
-  
-  // Preparation
-  preparationSkipped Boolean      @default(false)
-  preparationTime   Int?          // time spent in preparation
-  
+  hiringProcessId String        @db.ObjectId
+  hiringProcess   HiringProcess @relation(fields: [hiringProcessId], references: [id], onDelete: Cascade)
+
+  // Template reference (either predefined or custom)
+  predefinedRoundId String?          @db.ObjectId
+  predefinedRound   PredefinedRound? @relation(fields: [predefinedRoundId], references: [id])
+
+  customRoundId String?      @db.ObjectId
+  customRound   CustomRound? @relation(fields: [customRoundId], references: [id])
+
+  // Round details (copied from template when process starts)
+  roundType   RoundType
+  name        String
+  description String?
+  sequence    Int // Order in the process
+  duration    Int // Time limit in minutes
+
+  // Round status and timing
+  status      RoundStatus @default(NOT_STARTED)
+  timeSpent   Int? // Actual time spent in minutes
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  // Preparation phase
+  preparationSkipped Boolean @default(false)
+  preparationTime    Int? // Time spent in preparation
+
   // Questions and responses
-  questions         Question[]
-  responses         Response[]
-  
+  questions Question[]
+  responses Response[]
+
   // AI interview specific
-  interviewData     InterviewData?
-  
+  interviewData InterviewData?
+
   // Coding round specific  
   codingSubmissions CodingSubmission[]
-  
+
   // Feedback and assessment
-  feedback          RoundFeedback?
-  
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  
+  feedback RoundFeedback?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@map("rounds")
 }
 
 // Questions generated for a round
 model Question {
-  id          String      @id @default(auto()) @map("_id") @db.ObjectId
-  
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
   // Round this question belongs to
-  roundId     String      @db.ObjectId
-  round       Round       @relation(fields: [roundId], references: [id], onDelete: Cascade)
-  
+  roundId String @db.ObjectId
+  round   Round  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
   // Question details
-  content     String
-  type        QuestionType // "MCQ", "SUBJECTIVE", "CODING", "BEHAVIORAL"
-  difficulty  String       // "easy", "medium", "hard"
-  category    String?      // "algorithms", "system-design", etc.
-  
+  content    String
+  type       QuestionType // "MCQ", "SUBJECTIVE", "CODING", "BEHAVIORAL"
+  difficulty String // "easy", "medium", "hard"
+  category   String? // "algorithms", "system-design", etc.
+
   // For MCQ questions
-  options     String[]
+  options       String[]
   correctAnswer String?
-  
+
   // For coding questions
   constraints String?
   examples    Json?
   testCases   Json?
-  
+
   // AI generation metadata
-  generatedBy String       // "openai", "claude", etc.
-  prompt      String?      // Original prompt used
-  
+  generatedBy String // "openai", "claude", etc.
+  prompt      String? // Original prompt used
+
   // Responses to this question
-  responses   Response[]
-  
-  createdAt   DateTime     @default(now())
-  
+  responses Response[]
+
+  createdAt DateTime @default(now())
+
   @@map("questions")
 }
 
 // User responses to questions
 model Response {
-  id          String      @id @default(auto()) @map("_id") @db.ObjectId
-  
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
   // Question this response is for
-  questionId  String      @db.ObjectId
-  question    Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  
+  questionId String   @db.ObjectId
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
   // Round this response belongs to
-  roundId     String      @db.ObjectId
-  round       Round       @relation(fields: [roundId], references: [id], onDelete: Cascade)
-  
+  roundId String @db.ObjectId
+  round   Round  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
   // Response content
-  content     String
-  isCorrect   Boolean?    // For questions with definitive answers
-  score       Float?      // AI generated score
-  
+  content   String
+  isCorrect Boolean? // For questions with definitive answers
+  score     Float? // AI generated score
+
   // Timing
-  timeSpent   Int?        // in seconds
-  submittedAt DateTime    @default(now())
-  
+  timeSpent   Int? // in seconds
+  submittedAt DateTime @default(now())
+
   @@map("responses")
 }
 
 // AI Interview specific data
 model InterviewData {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
   // Round this interview belongs to
-  roundId         String   @unique @db.ObjectId
-  round           Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
-  
+  roundId String @unique @db.ObjectId
+  round   Round  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
   // Interview session details
-  sessionId       String   @unique
-  authToken       String   // For backend model connection
-  
+  sessionId String @unique
+  authToken String // For backend model connection
+
   // Conversation data
-  transcript      Json     // Full conversation transcript
-  audioRecording  String?  // URL to audio file if recorded
-  
+  transcript     Json // Full conversation transcript
+  audioRecording String? // URL to audio file if recorded
+
   // Analysis results
-  sentimentAnalysis Json?
-  confidenceScore   Float?
+  sentimentAnalysis  Json?
+  confidenceScore    Float?
   communicationScore Float?
-  technicalScore    Float?
-  
+  technicalScore     Float?
+
   // Connection metadata
-  modelBackend    String   // Which AI model was used
-  connectionLogs  Json?    // Connection/disconnection logs
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  modelBackend   String // Which AI model was used
+  connectionLogs Json? // Connection/disconnection logs
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@map("interview_data")
 }
 
 // Coding submissions
 model CodingSubmission {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
   // Round this submission belongs to
-  roundId       String   @db.ObjectId
-  round         Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
-  
+  roundId String @db.ObjectId
+  round   Round  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
   // Question this submission is for
-  questionId    String   @db.ObjectId
-  
+  questionId String @db.ObjectId
+
   // Submission details
-  code          String
-  language      String   // "javascript", "python", "java", etc.
-  
+  code     String
+  language String // "javascript", "python", "java", etc.
+
   // Judge0 evaluation results
-  judge0Token   String?  // Judge0 submission token
-  status        String?  // "Accepted", "Wrong Answer", "Time Limit Exceeded", etc.
-  executionTime Float?   // in seconds
-  memoryUsed    Int?     // in KB
-  
+  judge0Token   String? // Judge0 submission token
+  status        String? // "Accepted", "Wrong Answer", "Time Limit Exceeded", etc.
+  executionTime Float? // in seconds
+  memoryUsed    Int? // in KB
+
   // Test case results
-  testResults   Json     // Results from all test cases
-  score         Float?   // Overall score
-  
+  testResults Json // Results from all test cases
+  score       Float? // Overall score
+
   // Timestamps
-  submittedAt   DateTime @default(now())
-  evaluatedAt   DateTime?
-  
+  submittedAt DateTime  @default(now())
+  evaluatedAt DateTime?
+
   @@map("coding_submissions")
 }
 
 // Feedback for each round
 model RoundFeedback {
-  id                String   @id @default(auto()) @map("_id") @db.ObjectId
-  
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
   // Round this feedback is for
-  roundId           String   @unique @db.ObjectId
-  round             Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
-  
+  roundId String @unique @db.ObjectId
+  round   Round  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
   // Scores (0-100)
-  overallScore      Float
-  technicalScore    Float?
-  communicationScore Float?
+  overallScore        Float
+  technicalScore      Float?
+  communicationScore  Float?
   problemSolvingScore Float?
-  
+
   // Feedback content
-  strengths         String[]
-  improvements      String[]
-  detailedFeedback  String
-  
+  strengths        String[]
+  improvements     String[]
+  detailedFeedback String
+
   // Eligibility assessment
   eligibleForNext   Boolean
-  recommendedAction String   // "proceed", "retry", "additional_preparation"
-  
+  recommendedAction String // "proceed", "retry", "additional_preparation"
+
   // AI generation metadata
-  generatedBy       String   // Which AI model generated this
-  confidence        Float?   // AI's confidence in the assessment
-  
-  createdAt         DateTime @default(now())
-  
+  generatedBy String // Which AI model generated this
+  confidence  Float? // AI's confidence in the assessment
+
+  createdAt DateTime @default(now())
+
   @@map("round_feedback")
 }
 
 // Final assessment after completing all rounds
 model FinalAssessment {
-  id                String        @id @default(auto()) @map("_id") @db.ObjectId
-  
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
   // Process this assessment is for
-  hiringProcessId   String        @unique @db.ObjectId
-  hiringProcess     HiringProcess @relation(fields: [hiringProcessId], references: [id], onDelete: Cascade)
-  
+  hiringProcessId String        @unique @db.ObjectId
+  hiringProcess   HiringProcess @relation(fields: [hiringProcessId], references: [id], onDelete: Cascade)
+
   // Overall scores
-  overallScore      Float         // 0-100
-  technicalScore    Float
-  communicationScore Float
+  overallScore        Float // 0-100
+  technicalScore      Float
+  communicationScore  Float
   problemSolvingScore Float
-  
+
   // Performance analysis
-  strongAreas       String[]
-  improvementAreas  String[]
-  
+  strongAreas      String[]
+  improvementAreas String[]
+
   // Comprehensive report
-  executiveSummary  String
-  detailedAnalysis  String
-  recommendations   String[]
-  
+  executiveSummary String
+  detailedAnalysis String
+  recommendations  String[]
+
   // Hiring decision simulation
-  hiringDecision    String        // "hire", "maybe", "no_hire"
+  hiringDecision     String // "hire", "maybe", "no_hire"
   reasonsForDecision String[]
-  
+
   // Comparison with industry standards
-  industryPercentile Float?       // Where user stands compared to others
-  
-  createdAt         DateTime      @default(now())
-  
+  industryPercentile Float? // Where user stands compared to others
+
+  createdAt DateTime @default(now())
+
   @@map("final_assessments")
 }
 
 // Enums
+enum AssessmentType {
+  PREDEFINED
+  CUSTOM
+}
+
 enum ProcessStatus {
+  NOT_STARTED
   IN_PROGRESS
   COMPLETED
   ABANDONED
@@ -460,12 +475,12 @@ enum RoundStatus {
 
 enum RoundType {
   SCREENING
-  TECHNICAL
+  APTITUDE
+  COMMUNICATION
   CODING
+  TECHNICAL
   BEHAVIORAL
-  HR
   SYSTEM_DESIGN
-  FINAL
 }
 
 enum QuestionType {
@@ -474,4 +489,10 @@ enum QuestionType {
   CODING
   BEHAVIORAL
   SYSTEM_DESIGN
+}
+
+enum DifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
 }
