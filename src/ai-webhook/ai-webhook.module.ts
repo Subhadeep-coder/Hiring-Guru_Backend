@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
-import { AiWebhookService } from './ai-webhook.service';
-import { AiWebhookController } from './ai-webhook.controller';
+import { AIWebhookController } from './ai-webhook.controller';
+import { PrismaModule } from 'src/prisma/prisma.module';
 
 @Module({
-  controllers: [AiWebhookController],
-  providers: [AiWebhookService],
+  imports: [
+    PrismaModule,
+  ],
+  controllers: [AIWebhookController],
 })
-export class AiWebhookModule {}
+export class AiWebhookModule { }
