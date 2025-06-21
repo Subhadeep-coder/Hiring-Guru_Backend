@@ -56,10 +56,10 @@ export class AuthController {
       req.session.save((err) => {
         if (err) {
           console.error('Session save error:', err);
-          return res.redirect('http://localhost:5000/customer?auth=error');
+          return res.redirect('http://localhost:3000/customer?auth=error');
         }
 
-        return res.redirect('http://localhost:5000/customer?auth=success');
+        return res.redirect('http://localhost:3000/customer?auth=success');
       });
     })
   }

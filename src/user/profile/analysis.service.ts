@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { AIService } from './ai.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { GithubApiService } from './github-api.service';
@@ -15,14 +15,17 @@ export class AnalysisService {
     async createAnalysis(createAnalysisDto: CreateAnalysisDto): Promise<AnalysisResponseDto> {
         const { githubUsername } = createAnalysisDto;
 
-        // Get or create user - handle GitHub username uniqueness
-        const githubProfile = await this.githubService.getUserProfile(githubUsername);
+        if (!githubUsername) {
+            throw new BadRequestException('GitHub username is required');
+        }
 
-        let user = await this.findUserByGithubUsername(githubUsername);
+        try {
+            // Get or create user - handle GitHub username uniqueness
+            const githubProfile = await this.githubService.getUserProfile(githubUsername);
+            let user = await this.findUserByGithubUsername(githubUsername);
 
-        if (!user) {
-            // Check if GitHub username already exists (only if not null)
-            if (githubUsername) {
+            if (!user) {
+                // Check if GitHub username already exists
                 const existingUser = await this.prisma.user.findFirst({
                     where: {
                         githubUsername: githubUsername,
@@ -32,57 +35,67 @@ export class AnalysisService {
                 if (existingUser) {
                     throw new ConflictException('GitHub username already exists');
                 }
+
+                user = await this.prisma.user.create({
+                    data: {
+                        email: githubProfile.email || `${githubUsername}@github.local`, // Fallback email
+                        githubUsername,
+                        name: githubProfile.name,
+                        avatar: githubProfile.avatar_url,
+                        authProvider: 'github',
+                        authProviderId: githubProfile.id.toString(),
+                    },
+                });
             }
 
-            user = await this.prisma.user.create({
-                data: {
-                    email: githubProfile.email || `${githubUsername}@github.local`, // Fallback email
-                    githubUsername,
-                    name: githubProfile.name,
-                    avatar: githubProfile.avatar_url,
-                    authProvider: 'github',
-                    authProviderId: githubProfile.id.toString(),
-                },
-            });
-        }
-
-        // Send data to AI backend
-        const aiResponse = await this.aiService.analyzeProfile({
-            skills: createAnalysisDto.skills,
-            contributionFreq: createAnalysisDto.contributionFreq,
-            projectsCount: createAnalysisDto.projectsCount,
-            topLanguages: createAnalysisDto.topLanguages,
-        });
-
-        // Store analysis result
-        const analysis = await this.prisma.userAnalysis.create({
-            data: {
-                userId: user.id,
+            // Prepare data for AI backend
+            const aiPayload = {
                 skills: createAnalysisDto.skills,
                 contributionFreq: createAnalysisDto.contributionFreq,
                 projectsCount: createAnalysisDto.projectsCount,
                 topLanguages: createAnalysisDto.topLanguages,
                 recentActivity: createAnalysisDto.recentActivity,
                 repositoryStats: createAnalysisDto.repositoryStats,
-                targetRole: aiResponse.targetRole,
-                dreamCompanies: aiResponse.dreamCompanies,
-                confidenceScore: aiResponse.confidenceScore,
-                reasoning: aiResponse.reasoning,
-                skillGaps: aiResponse.skillGaps,
-                careerPath: aiResponse.careerPath,
-            },
-        });
+            };
 
-        return {
-            id: analysis.id,
-            targetRole: analysis.targetRole,
-            dreamCompanies: analysis.dreamCompanies,
-            confidenceScore: analysis.confidenceScore!,
-            reasoning: analysis.reasoning!,
-            skillGaps: analysis.skillGaps,
-            careerPath: analysis.careerPath,
-            createdAt: analysis.createdAt,
-        };
+            // Send data to AI backend
+            const aiResponse = await this.aiService.analyzeProfile(aiPayload);
+
+            // Store analysis result in database
+            const analysis = await this.prisma.userAnalysis.create({
+                data: {
+                    userId: user.id,
+                    skills: createAnalysisDto.skills,
+                    contributionFreq: createAnalysisDto.contributionFreq,
+                    projectsCount: createAnalysisDto.projectsCount,
+                    topLanguages: createAnalysisDto.topLanguages,
+                    recentActivity: createAnalysisDto.recentActivity,
+                    repositoryStats: createAnalysisDto.repositoryStats,
+                    targetRole: aiResponse.targetRole,
+                    dreamCompanies: aiResponse.dreamCompanies,
+                    confidenceScore: aiResponse.confidenceScore,
+                    reasoning: aiResponse.reasoning,
+                    skillGaps: aiResponse.skillGaps || [],
+                    careerPath: aiResponse.careerPath || [],
+                },
+            });
+
+            return {
+                id: analysis.id,
+                targetRole: analysis.targetRole,
+                dreamCompanies: analysis.dreamCompanies,
+                confidenceScore: analysis.confidenceScore!,
+                reasoning: analysis.reasoning!,
+                skillGaps: analysis.skillGaps,
+                careerPath: analysis.careerPath,
+                createdAt: analysis.createdAt,
+            };
+        } catch (error) {
+            if (error instanceof ConflictException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to create analysis: ' + error.message);
+        }
     }
 
     private async findUserByGithubUsername(githubUsername: string) {
@@ -120,31 +133,78 @@ export class AnalysisService {
         }));
     }
 
-    async getGithubData(githubUsername: string) {
-        const [profile, repositories, languages, contributionFreq] = await Promise.all([
-            this.githubService.getUserProfile(githubUsername),
-            this.githubService.getUserRepositories(githubUsername),
-            this.githubService.getUserLanguages(githubUsername),
-            this.githubService.getContributionFrequency(githubUsername),
-        ]);
+    async getAnalysisById(id: string): Promise<AnalysisResponseDto> {
+        const analysis = await this.prisma.userAnalysis.findUnique({
+            where: { id },
+        });
 
-        // Extract skills from languages and repository topics
-        const skills = [
-            ...Object.keys(languages),
-            ...repositories.flatMap(repo => repo.topics || []),
-        ].filter((skill, index, arr) => arr.indexOf(skill) === index); // Remove duplicates
+        if (!analysis) {
+            throw new NotFoundException('Analysis not found');
+        }
 
         return {
-            profile,
-            skills,
-            contributionFreq,
-            projectsCount: profile.public_repos,
-            topLanguages: languages,
-            repositoryStats: {
-                totalStars: repositories.reduce((sum, repo) => sum + repo.stargazers_count, 0),
-                totalForks: repositories.reduce((sum, repo) => sum + repo.forks_count, 0),
-                totalSize: repositories.reduce((sum, repo) => sum + repo.size, 0),
-            },
+            id: analysis.id,
+            targetRole: analysis.targetRole,
+            dreamCompanies: analysis.dreamCompanies,
+            confidenceScore: analysis.confidenceScore!,
+            reasoning: analysis.reasoning!,
+            skillGaps: analysis.skillGaps,
+            careerPath: analysis.careerPath,
+            createdAt: analysis.createdAt,
         };
+    }
+
+    async getGithubData(githubUsername: string) {
+        if (!githubUsername) {
+            throw new BadRequestException('GitHub username is required');
+        }
+
+        try {
+            const [profile, repositories, languages, contributionFreq] = await Promise.all([
+                this.githubService.getUserProfile(githubUsername),
+                this.githubService.getUserRepositories(githubUsername),
+                this.githubService.getUserLanguages(githubUsername),
+                this.githubService.getContributionFrequency(githubUsername),
+            ]);
+
+            // Extract skills from languages and repository topics
+            const skills = [
+                ...Object.keys(languages),
+                ...repositories.flatMap(repo => repo.topics || []),
+            ].filter((skill, index, arr) => arr.indexOf(skill) === index); // Remove duplicates
+
+            // Calculate recent activity
+            const recentActivity = {
+                lastPushDate: repositories.reduce((latest, repo) => {
+                    const pushDate = new Date(repo.pushed_at);
+                    return pushDate > latest ? pushDate : latest;
+                }, new Date(0)),
+                activeRepos: repositories.filter(repo => {
+                    const lastPush = new Date(repo.pushed_at);
+                    const sixMonthsAgo = new Date();
+                    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+                    return lastPush > sixMonthsAgo;
+                }).length,
+            };
+
+            return {
+                profile,
+                skills,
+                contributionFreq,
+                projectsCount: profile.public_repos,
+                topLanguages: languages,
+                recentActivity,
+                repositoryStats: {
+                    totalStars: repositories.reduce((sum, repo) => sum + repo.stargazers_count, 0),
+                    totalForks: repositories.reduce((sum, repo) => sum + repo.forks_count, 0),
+                    totalSize: repositories.reduce((sum, repo) => sum + repo.size, 0),
+                    averageStars: repositories.length > 0
+                        ? repositories.reduce((sum, repo) => sum + repo.stargazers_count, 0) / repositories.length
+                        : 0,
+                },
+            };
+        } catch (error) {
+            throw new BadRequestException('Failed to fetch GitHub data: ' + error.message);
+        }
     }
 }

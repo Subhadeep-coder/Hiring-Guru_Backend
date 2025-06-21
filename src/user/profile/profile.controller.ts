@@ -1,5 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
-import { ProfileService } from './profile.service';
+import { Body, Controller, Get, Param, Post, Req, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
 import { AuthenticatedGuard } from '../auth/guards/auth.guard';
 import { AnalysisService } from './analysis.service';
 import { CreateAnalysisDto } from './dto/analysis.dto';
@@ -8,31 +7,89 @@ import { CreateAnalysisDto } from './dto/analysis.dto';
 @Controller('user')
 export class ProfileController {
   constructor(
-    private readonly profileService: ProfileService,
     private readonly analysisService: AnalysisService,
   ) { }
 
   // Session Management
   @Get('profile')
-  getProfile(@Req() req: any) {
-    return {
-      user: req.user,
-      message: 'Authentication successful',
-    };
+  async getProfile(@Req() req: any) {
+    try {
+      // Get user's latest analyses
+      const userAnalyses = await this.analysisService.getAnalysisByUser(req.user.githubUsername);
+
+      return {
+        user: req.user,
+        userAnalyses: userAnalyses,
+        message: 'Authentication successful',
+      };
+    } catch (error) {
+      // If user has no analyses yet, still return user data
+      return {
+        user: req.user,
+        userAnalyses: [],
+        message: 'Authentication successful',
+      };
+    }
   }
 
+  // Get GitHub data for a user (used to populate analysis form)
+  @Get('github/:username')
+  async getGithubData(@Req() req: any, @Param('username') username: string) {
+    try {
+      return await this.analysisService.getGithubData(username);
+    } catch (error) {
+      throw new HttpException(
+        'Failed to fetch GitHub data',
+        HttpStatus.BAD_REQUEST
+      );
+    }
+  }
+
+  // Create new analysis by sending data to AI backend
   @Post('analysis')
   async createAnalysis(@Body() createAnalysisDto: CreateAnalysisDto) {
-    return this.analysisService.createAnalysis(createAnalysisDto);
+    try {
+      return await this.analysisService.createAnalysis(createAnalysisDto);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        'Failed to create analysis',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 
-  @Get(':username')
+  // Get analysis history for a user
+  @Get('analysis/:username')
   async getUserAnalyses(@Param('username') username: string) {
-    return this.analysisService.getAnalysisByUser(username);
+    try {
+      return await this.analysisService.getAnalysisByUser(username);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        'Failed to fetch user analyses',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 
-  @Get('github/:username')
-  async getGithubData(@Param('username') username: string) {
-    return this.analysisService.getGithubData(username);
+  // Get specific analysis by ID
+  @Get('analysis/details/:id')
+  async getAnalysisById(@Param('id') id: string) {
+    try {
+      return await this.analysisService.getAnalysisById(id);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        'Failed to fetch analysis details',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 }
