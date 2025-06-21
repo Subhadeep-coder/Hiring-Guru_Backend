@@ -33,10 +33,11 @@ datasource db {
 
 // User model with authentication details
 model User {
-  id     String  @id @default(auto()) @map("_id") @db.ObjectId
-  email  String  @unique
-  name   String?
-  avatar String?
+  id             String  @id @default(auto()) @map("_id") @db.ObjectId
+  email          String  @unique
+  githubUsername String?
+  name           String?
+  avatar         String?
 
   authProvider   String // 'google', 'github'
   authProviderId String
@@ -47,6 +48,7 @@ model User {
 
   // User's hiring process attempts
   hiringProcesses HiringProcess[]
+  userAnalysis    UserAnalysis[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -78,6 +80,37 @@ model PredefinedAssessment {
   updatedAt DateTime @updatedAt
 
   @@map("predefined_assessments")
+}
+
+model UserAnalysis {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Input Data (from GitHub APIs)
+  skills           String[] // Array of programming languages, frameworks, etc.
+  contributionFreq String // "high", "medium", "low" or specific metrics
+  projectsCount    Int // Number of repositories/projects
+
+  // Additional GitHub metrics (optional)
+  topLanguages    Json? // {language: percentage} mapping
+  recentActivity  Json? // Recent commits, PRs, etc.
+  repositoryStats Json? // Stars, forks, etc.
+
+  // AI Generated Results
+  targetRole     String // Recommended job role
+  dreamCompanies String[] // Array of recommended companies
+
+  // Additional AI insights (optional)
+  confidenceScore Float? // AI confidence in recommendations
+  reasoning       String? // Why these recommendations were made
+  skillGaps       String[] // Skills to improve
+  careerPath      String[] // Suggested career progression
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("analyses")
 }
 
 // Rounds within predefined assessments

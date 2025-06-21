@@ -1,13 +1,16 @@
-import { Body, Controller, Get, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { AuthenticatedGuard } from '../auth/guards/auth.guard';
-import { UpdateUserPreferencesDto } from './dto/update-user-preferences.dto';
-import { CreateUserPreferencesDto } from './dto/create-user-preferences.dto';
+import { AnalysisService } from './analysis.service';
+import { CreateAnalysisDto } from './dto/analysis.dto';
 
 @UseGuards(AuthenticatedGuard)
 @Controller('user/profile')
 export class ProfileController {
-  constructor(private readonly profileService: ProfileService) { }
+  constructor(
+    private readonly profileService: ProfileService,
+    private readonly analysisService: AnalysisService,
+  ) { }
 
   // Session Management
   @Get('profile')
@@ -18,21 +21,18 @@ export class ProfileController {
     };
   }
 
-  // @Post()
-  // create(@Body() dto: CreateUserPreferencesDto) {
-  //   return this.profileService.create(dto);
-  // }
+  @Post('analysis')
+  async createAnalysis(@Body() createAnalysisDto: CreateAnalysisDto) {
+    return this.analysisService.createAnalysis(createAnalysisDto);
+  }
 
-  // @Get(':userId')
-  // findByUserId(@Req() req: any) {
-  //   return this.profileService.findByUserId(req.user.userId);
-  // }
+  @Get(':username')
+  async getUserAnalyses(@Param('username') username: string) {
+    return this.analysisService.getAnalysisByUser(username);
+  }
 
-  // @Patch(':userId')
-  // update(
-  //   @Req() req: any,
-  //   @Body() dto: UpdateUserPreferencesDto,
-  // ) {
-  //   return this.profileService.update(req.user.userId, dto);
-  // }
+  @Get('github/:username')
+  async getGithubData(@Param('username') username: string) {
+    return this.analysisService.getGithubData(username);
+  }
 }
