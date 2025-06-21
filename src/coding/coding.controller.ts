@@ -5,7 +5,7 @@ import { SubmitCodeDto } from './dto/submit-code.dto';
 import { AuthenticatedGuard } from 'src/user/auth/guards/auth.guard';
 
 @Controller('coding')
-@UseGuards(AuthenticatedGuard)
+// @UseGuards(AuthenticatedGuard)
 export class CodingController {
   constructor(private readonly codingService: CodingService) { }
 

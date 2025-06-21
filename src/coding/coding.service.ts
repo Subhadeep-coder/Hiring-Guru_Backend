@@ -38,14 +38,16 @@ export class CodingService {
         const { code, language, roundId, questionId, testCases, stdin } = runCodeDto;
 
         // Validate round and question exist
-        await this.validateRoundAndQuestion(roundId, questionId);
+        // await this.validateRoundAndQuestion(roundId, questionId);
 
         const languageId = this.getLanguageId(language);
 
         try {
             if (testCases && testCases.length > 0) {
                 // Run against multiple test cases
+                console.log(testCases);
                 const results = await this.runMultipleTestCases(code, languageId, testCases);
+                console.log("Here results: ", results);
                 return {
                     success: true,
                     results,
@@ -178,7 +180,7 @@ export class CodingService {
             language_id: languageId,
             stdin: stdin ? Buffer.from(stdin).toString('base64') : undefined,
         };
-
+        console.log("Before execution");
         // Submit to Judge0
         const submitResponse = await firstValueFrom(
             this.httpService.post(`${this.judge0BaseUrl}/submissions`, submissionData, {
@@ -190,7 +192,7 @@ export class CodingService {
                 params: { base64_encoded: 'true', wait: 'true' },
             })
         );
-
+        console.log("After execution", submitResponse);
         return this.parseJudge0Response(submitResponse.data);
     }
 
@@ -198,8 +200,9 @@ export class CodingService {
         const results: TestResult[] = [];
 
         for (const testCase of testCases) {
+            console.log("Running one execution: ", testCase);
             const result = await this.executeSingleRun(code, languageId, testCase.input);
-
+            console.log("After running one execution: ", result);
             const testResult: TestResult = {
                 input: testCase.input,
                 expectedOutput: testCase.expectedOutput.trim(),
