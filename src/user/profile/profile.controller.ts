@@ -3,7 +3,7 @@ import { AuthenticatedGuard } from '../auth/guards/auth.guard';
 import { AnalysisService } from './analysis.service';
 import { CreateAnalysisDto } from './dto/analysis.dto';
 
-@UseGuards(AuthenticatedGuard)
+
 @Controller('user')
 export class ProfileController {
   constructor(
@@ -11,6 +11,7 @@ export class ProfileController {
   ) { }
 
   // Session Management
+  @UseGuards(AuthenticatedGuard)
   @Get('profile')
   async getProfile(@Req() req: any) {
     try {
@@ -33,6 +34,7 @@ export class ProfileController {
   }
 
   // Get GitHub data for a user (used to populate analysis form)
+  @UseGuards(AuthenticatedGuard)
   @Get('github/:username')
   async getGithubData(@Req() req: any, @Param('username') username: string) {
     try {
@@ -46,6 +48,7 @@ export class ProfileController {
   }
 
   // Create new analysis by sending data to AI backend
+  @UseGuards(AuthenticatedGuard)
   @Post('analysis')
   async createAnalysis(@Req() req: any, @Body() createAnalysisDto: CreateAnalysisDto) {
     try {
@@ -62,6 +65,7 @@ export class ProfileController {
   }
 
   // Get analysis history for a user
+  @UseGuards(AuthenticatedGuard)
   @Get('analysis/:username')
   async getUserAnalyses(@Param('username') username: string) {
     try {

@@ -14,7 +14,6 @@ import { CreateCustomAssessmentDto } from './dto/create-custom-assessment.dto';
 import { UpdateCustomAssessmentDto } from './dto/update-custom-assessment.dto';
 
 @Controller('custom-assessments')
-@UseGuards(AuthenticatedGuard)
 export class CustomAssessmentController {
   constructor(private customAssessmentService: CustomAssessmentService) { }
 
@@ -27,6 +26,7 @@ export class CustomAssessmentController {
     return this.customAssessmentService.createCustomAssessment(userId, dto);
   }
 
+  @UseGuards(AuthenticatedGuard)
   @Put(':id')
   async updateCustomAssessment(
     @Req() req: any,
@@ -37,12 +37,14 @@ export class CustomAssessmentController {
     return this.customAssessmentService.updateCustomAssessment(userId, assessmentId, dto);
   }
 
+  @UseGuards(AuthenticatedGuard)
   @Get()
   async getUserCustomAssessments(@Req() req: any) {
     const userId = req.user.id;
     return this.customAssessmentService.getUserCustomAssessments(userId);
   }
 
+  @UseGuards(AuthenticatedGuard)
   @Get(':id')
   async getCustomAssessmentById(
     @Req() req: any,
