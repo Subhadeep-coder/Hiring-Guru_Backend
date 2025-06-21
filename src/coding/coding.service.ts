@@ -36,7 +36,7 @@ export class CodingService {
 
     async generateQuestion() {
         const response = await firstValueFrom(
-            this.httpService.get(`${this.judge0BaseUrl}/submissions`, {
+            this.httpService.get(`${this.judge0BaseUrl}/questions`, {
                 headers: {
                     'Content-Type': 'application/json',
                 }
