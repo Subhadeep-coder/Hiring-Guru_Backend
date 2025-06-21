@@ -19,10 +19,9 @@ export class CustomAssessmentController {
 
   @Post()
   async createCustomAssessment(
-    @Req() req: any,
     @Body() dto: CreateCustomAssessmentDto,
   ) {
-    const userId = req.user.id;
+    const userId = dto.userId;
     return this.customAssessmentService.createCustomAssessment(userId, dto);
   }
 

@@ -42,6 +42,8 @@ export class CreateCustomRoundDto {
 }
 
 export class CreateCustomAssessmentDto {
+    userId: string;
+
     @IsString()
     @IsNotEmpty()
     name: string;
