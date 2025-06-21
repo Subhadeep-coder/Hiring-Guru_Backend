@@ -22,6 +22,7 @@ export interface SubmitAnswersResponse {
     roundId: string;
     submissionId: string;
     message?: string;
+    aiVerdict: any;
 }
 
 export interface AIVerificationPayload {

@@ -188,13 +188,14 @@ export class RoundsService {
             };
 
             // Send to AI backend for verification (fire and forget)
-            this.sendToAIVerification(aiVerificationPayload);
+            const aiVerdict = await this.sendToAIVerification(aiVerificationPayload);
 
             return {
                 success: true,
                 roundId: dto.roundId,
                 submissionId,
-                message: 'Answers submitted successfully. AI verification in progress.'
+                message: 'Answers submitted successfully. AI verification in progress.',
+                aiVerdict
             };
 
         } catch (error) {
@@ -203,19 +204,19 @@ export class RoundsService {
         }
     }
 
-    private async sendToAIVerification(payload: AIVerificationPayload): Promise<void> {
+    private async sendToAIVerification(payload: AIVerificationPayload): Promise<any> {
         try {
             const aiBackendUrl = this.configService.get<string>('AI_BACKEND_URL');
-            const aiBackendToken = this.configService.get<string>('AI_BACKEND_TOKEN');
 
-            await firstValueFrom(
-                this.httpService.post(`${aiBackendUrl}/verify-answers`, payload, {
+            const response = await firstValueFrom(
+                this.httpService.post(`${aiBackendUrl}/evaluate-aptitude-answers`, payload, {
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${aiBackendToken}`
                     }
                 })
             );
+
+            return response.data;
         } catch (error) {
             console.error('Error sending to AI verification:', error);
             // Don't throw error as this is fire and forget
