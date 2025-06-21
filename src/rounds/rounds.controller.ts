@@ -10,7 +10,7 @@ import { AuthenticatedGuard } from 'src/user/auth/guards/auth.guard';
 export class RoundsController {
   constructor(private readonly roundsService: RoundsService) { }
 
-  @Post('generate-questions')
+  @Get('generate-questions')
   async generateQuestions(@Body() dto: GenerateQuestionsDto) {
     return this.roundsService.generateQuestions(dto);
   }

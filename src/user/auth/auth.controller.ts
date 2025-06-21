@@ -28,14 +28,14 @@ export class AuthController {
   async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
     req.login(req.user!, (err) => {
       if (err)
-        res.redirect(`http://localhost:3000/dashboard?auth=error`);
+        res.redirect(`http://localhost:3000/?auth=error`);
       req.session.save((err) => {
         if (err) {
           console.error('Session save error:', err);
-          return res.redirect('http://localhost:5173/customer?auth=error');
+          return res.redirect('http://localhost:3000/?auth=error');
         }
 
-        return res.redirect('http://localhost:5173/customer?auth=success');
+        return res.redirect('http://localhost:3000/dashboard?auth=success');
       });
     })
   }
@@ -56,10 +56,10 @@ export class AuthController {
       req.session.save((err) => {
         if (err) {
           console.error('Session save error:', err);
-          return res.redirect('http://localhost:5173/customer?auth=error');
+          return res.redirect('http://localhost:5000/customer?auth=error');
         }
 
-        return res.redirect('http://localhost:5173/customer?auth=success');
+        return res.redirect('http://localhost:5000/customer?auth=success');
       });
     })
   }

@@ -53,7 +53,7 @@ export class RoundsService {
             const aiBackendUrl = this.configService.get<string>('AI_BACKEND_URL');
 
             const response = await firstValueFrom(
-                this.httpService.post(`${aiBackendUrl}/generate-questions`, aiPayload, {
+                this.httpService.get(`${aiBackendUrl}/generate-aptitude-questions`, {
                     headers: {
                         'Content-Type': 'application/json',
                     }

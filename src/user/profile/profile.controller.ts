@@ -5,7 +5,7 @@ import { UpdateUserPreferencesDto } from './dto/update-user-preferences.dto';
 import { CreateUserPreferencesDto } from './dto/create-user-preferences.dto';
 
 @UseGuards(AuthenticatedGuard)
-@Controller('user/profile')
+@Controller('user')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) { }
 
