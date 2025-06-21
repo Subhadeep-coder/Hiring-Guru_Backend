@@ -34,6 +34,18 @@ export class CodingService {
         this.judge0ApiKey = this.configService.get('JUDGE0_API_KEY') || "";
     }
 
+    async generateQuestion() {
+        const response = await firstValueFrom(
+            this.httpService.get(`${this.judge0BaseUrl}/submissions`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+        );
+
+        return response.data;
+    }
+
     async runCode(runCodeDto: RunCodeDto) {
         const { code, language, roundId, questionId, testCases, stdin } = runCodeDto;
 
