@@ -1,4 +1,5 @@
 import { IsString, IsEnum, IsNumber, IsOptional, Min, Max } from 'class-validator';
+import { QuestionType } from 'generated/prisma';
 
 export class GenerateQuestionsDto {
     @IsString()
@@ -22,4 +23,6 @@ export class GenerateQuestionsDto {
     @IsNumber()
     @Min(1)
     duration: number;
+
+    type: QuestionType;
 }
