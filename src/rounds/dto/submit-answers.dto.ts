@@ -2,16 +2,17 @@ import { IsString, IsArray, IsNumber, IsOptional, ValidateNested } from 'class-v
 import { Type } from 'class-transformer';
 
 export class AnswerDto {
-    @IsString()
-    questionId: string;
+  @IsString()
+  questionId: string;
 
-    @IsString()
-    answer: string;
+  @IsString()
+  answer: string; 
 
-    @IsOptional()
-    @IsNumber()
-    timeSpent?: number;
+  @IsNumber()
+  timeSpent: number;
 }
+
+
 
 export class SubmitAnswersDto {
     @IsString()

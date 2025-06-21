@@ -2,27 +2,28 @@ import { IsString, IsEnum, IsNumber, IsOptional, Min, Max } from 'class-validato
 import { QuestionType } from 'generated/prisma';
 
 export class GenerateQuestionsDto {
-    @IsString()
-    roundId: string;
+  @IsString()
+  roundId: string;
 
-    @IsEnum(['APTITUDE', 'TECHNICAL', 'BEHAVIORAL'])
-    roundType: 'APTITUDE' | 'TECHNICAL' | 'BEHAVIORAL';
+  @IsEnum(['APTITUDE', 'TECHNICAL', 'BEHAVIORAL'])
+  roundType: 'APTITUDE' | 'TECHNICAL' | 'BEHAVIORAL';
 
-    @IsEnum(['easy', 'medium', 'hard'])
-    difficulty: 'easy' | 'medium' | 'hard';
+  @IsEnum(['easy', 'medium', 'hard'])
+  difficulty: 'easy' | 'medium' | 'hard';
 
-    @IsNumber()
-    @Min(1)
-    @Max(50)
-    questionCount: number;
+  @IsNumber()
+  @Min(1)
+  @Max(50)
+  questionCount: number;
 
-    @IsOptional()
-    @IsString()
-    category?: string;
+  @IsOptional()
+  @IsString()
+  category?: string;
 
-    @IsNumber()
-    @Min(1)
-    duration: number;
+  @IsNumber()
+  @Min(1)
+  duration: number;
 
-    type: QuestionType;
+  @IsEnum(QuestionType)
+  type: QuestionType;
 }

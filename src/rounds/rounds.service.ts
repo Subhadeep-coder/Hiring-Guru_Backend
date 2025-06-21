@@ -20,7 +20,6 @@ export class RoundsService {
     ) { }
 
     async generateQuestions(dto: GenerateQuestionsDto): Promise<GenerateQuestionsResponse> {
-        // Verify round exists and belongs to user
         const round = await this.prisma.round.findUnique({
             where: { id: dto.roundId },
             include: {
@@ -34,26 +33,24 @@ export class RoundsService {
             throw new NotFoundException('Round not found');
         }
 
-        // Check if round is in correct status
         if (!['IN_PREPARATION', 'NOT_STARTED'].includes(round.status)) {
             throw new BadRequestException('Round is not in a state to generate questions');
         }
 
         try {
-            // Prepare AI backend payload
-            // const aiPayload = {
-            //     roundType: dto.roundType,
-            //     difficulty: dto.difficulty,
-            //     questionCount: dto.questionCount,
-            //     category: dto.category,
-            //     duration: dto.duration
-            // };
-
-            // Call AI backend to generate questions
             const aiBackendUrl = this.configService.get<string>('AI_BACKEND_URL');
 
+            const aiPayload = {
+                roundType: dto.roundType,
+                difficulty: dto.difficulty,
+                questionCount: dto.questionCount,
+                category: dto.category || null,
+                duration: dto.duration,
+                type: dto.type
+            };
+
             const response = await firstValueFrom(
-                this.httpService.get(`${aiBackendUrl}/generate-aptitude-questions`, {
+                this.httpService.post(`${aiBackendUrl}/generate-aptitude-questions`, aiPayload, {
                     headers: {
                         'Content-Type': 'application/json',
                     }
@@ -62,7 +59,6 @@ export class RoundsService {
 
             const aiGeneratedQuestions = response.data;
 
-            // Store questions in database
             const questions = await Promise.all(
                 aiGeneratedQuestions['questions_with_answers'].map(async (q: any) => {
                     return await this.prisma.question.create({
@@ -70,8 +66,8 @@ export class RoundsService {
                             roundId: dto.roundId,
                             content: q.question,
                             type: dto.type,
-                            difficulty: "easy",
-                            category: q.category,
+                            difficulty: dto.difficulty,
+                            category: q.category || dto.category || 'General',
                             options: q.options || [],
                             correctAnswer: q.answer,
                             generatedBy: 'ai-backend',
@@ -81,7 +77,6 @@ export class RoundsService {
                 })
             );
 
-            // Update round status
             await this.prisma.round.update({
                 where: { id: dto.roundId },
                 data: {
@@ -97,7 +92,7 @@ export class RoundsService {
                     content: q.content,
                     type: q.type as 'MCQ' | 'SUBJECTIVE',
                     difficulty: q.difficulty,
-                    category: q.category || undefined,
+                    category: q.category,
                     options: q.options.length > 0 ? q.options : undefined,
                     correctAnswer: q.correctAnswer || undefined
                 })),
@@ -111,7 +106,13 @@ export class RoundsService {
         }
     }
 
+
     async submitAnswers(dto: SubmitAnswersDto): Promise<SubmitAnswersResponse> {
+        await this.prisma.round.update({
+            where: { id: dto.roundId },
+            data: { status: 'IN_PROGRESS', startedAt: new Date() },
+        });
+
         // Verify round exists and is in progress
         const round = await this.prisma.round.findUnique({
             where: { id: dto.roundId },
@@ -188,13 +189,14 @@ export class RoundsService {
             };
 
             // Send to AI backend for verification (fire and forget)
-            this.sendToAIVerification(aiVerificationPayload);
+            const aiVerdict = await this.sendToAIVerification(aiVerificationPayload);
 
             return {
                 success: true,
                 roundId: dto.roundId,
                 submissionId,
-                message: 'Answers submitted successfully. AI verification in progress.'
+                message: 'Answers submitted successfully. AI verification in progress.',
+                aiVerdict
             };
 
         } catch (error) {
@@ -203,19 +205,19 @@ export class RoundsService {
         }
     }
 
-    private async sendToAIVerification(payload: AIVerificationPayload): Promise<void> {
+    private async sendToAIVerification(payload: AIVerificationPayload): Promise<any> {
         try {
             const aiBackendUrl = this.configService.get<string>('AI_BACKEND_URL');
-            const aiBackendToken = this.configService.get<string>('AI_BACKEND_TOKEN');
 
-            await firstValueFrom(
-                this.httpService.post(`${aiBackendUrl}/verify-answers`, payload, {
+            const response = await firstValueFrom(
+                this.httpService.post(`${aiBackendUrl}/evaluate-aptitude-answers`, payload, {
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${aiBackendToken}`
                     }
                 })
             );
+
+            return response.data;
         } catch (error) {
             console.error('Error sending to AI verification:', error);
             // Don't throw error as this is fire and forget
