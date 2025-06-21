@@ -7,6 +7,7 @@ import { HiringProcessModule } from './hiring-process/hiring-process.module';
 import { PredefinedAssessmentModule } from './predefined-assessment/predefined-assessment.module';
 import { RoundsModule } from './rounds/rounds.module';
 import { AiWebhookModule } from './ai-webhook/ai-webhook.module';
+import { CodingModule } from './coding/coding.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AiWebhookModule } from './ai-webhook/ai-webhook.module';
     PredefinedAssessmentModule,
     RoundsModule,
     AiWebhookModule,
+    CodingModule,
   ],
   providers: [],
 })

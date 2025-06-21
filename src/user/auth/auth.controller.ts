@@ -74,24 +74,16 @@ export class AuthController {
 
   @Post('logout')
   logout(@Req() req: any, @Res() res: Response) {
-    req.logout((err) => {
+    req.session.destroy((err) => {
       if (err) {
         return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-          message: 'Logout failed',
+          message: 'Session destruction failed',
         });
       }
 
-      req.session.destroy((err) => {
-        if (err) {
-          return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-            message: 'Session destruction failed',
-          });
-        }
-
-        res.clearCookie('connect.sid');
-        res.status(HttpStatus.OK).json({
-          message: 'Logout successful',
-        });
+      res.clearCookie('connect.sid');
+      res.status(HttpStatus.OK).json({
+        message: 'Logout successful',
       });
     });
   }
