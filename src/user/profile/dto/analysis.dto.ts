@@ -23,6 +23,8 @@ export class CreateAnalysisDto {
 
     @IsOptional()
     repositoryStats?: any;
+    targetRole: string;
+    dreamCompanies: string[];
 }
 
 export class AnalysisResponseDto {

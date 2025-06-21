@@ -47,9 +47,9 @@ export class ProfileController {
 
   // Create new analysis by sending data to AI backend
   @Post('analysis')
-  async createAnalysis(@Body() createAnalysisDto: CreateAnalysisDto) {
+  async createAnalysis(@Req() req: any, @Body() createAnalysisDto: CreateAnalysisDto) {
     try {
-      return await this.analysisService.createAnalysis(createAnalysisDto);
+      return await this.analysisService.createAnalysis(createAnalysisDto, req.user.id);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;

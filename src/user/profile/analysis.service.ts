@@ -12,7 +12,7 @@ export class AnalysisService {
         private readonly aiService: AIService,
     ) { }
 
-    async createAnalysis(createAnalysisDto: CreateAnalysisDto): Promise<AnalysisResponseDto> {
+    async createAnalysis(createAnalysisDto: CreateAnalysisDto, userId: string): Promise<AnalysisResponseDto> {
         const { githubUsername } = createAnalysisDto;
 
         if (!githubUsername) {
@@ -20,34 +20,6 @@ export class AnalysisService {
         }
 
         try {
-            // Get or create user - handle GitHub username uniqueness
-            const githubProfile = await this.githubService.getUserProfile(githubUsername);
-            let user = await this.findUserByGithubUsername(githubUsername);
-
-            if (!user) {
-                // Check if GitHub username already exists
-                const existingUser = await this.prisma.user.findFirst({
-                    where: {
-                        githubUsername: githubUsername,
-                    },
-                });
-
-                if (existingUser) {
-                    throw new ConflictException('GitHub username already exists');
-                }
-
-                user = await this.prisma.user.create({
-                    data: {
-                        email: githubProfile.email || `${githubUsername}@github.local`, // Fallback email
-                        githubUsername,
-                        name: githubProfile.name,
-                        avatar: githubProfile.avatar_url,
-                        authProvider: 'github',
-                        authProviderId: githubProfile.id.toString(),
-                    },
-                });
-            }
-
             // Prepare data for AI backend
             const aiPayload = {
                 skills: createAnalysisDto.skills,
@@ -56,6 +28,8 @@ export class AnalysisService {
                 topLanguages: createAnalysisDto.topLanguages,
                 recentActivity: createAnalysisDto.recentActivity,
                 repositoryStats: createAnalysisDto.repositoryStats,
+                targetRole: createAnalysisDto.targetRole,
+                dreamCompanies: createAnalysisDto.dreamCompanies,
             };
 
             // Send data to AI backend
@@ -64,17 +38,15 @@ export class AnalysisService {
             // Store analysis result in database
             const analysis = await this.prisma.userAnalysis.create({
                 data: {
-                    userId: user.id,
+                    userId: userId,
                     skills: createAnalysisDto.skills,
                     contributionFreq: createAnalysisDto.contributionFreq,
                     projectsCount: createAnalysisDto.projectsCount,
                     topLanguages: createAnalysisDto.topLanguages,
                     recentActivity: createAnalysisDto.recentActivity,
                     repositoryStats: createAnalysisDto.repositoryStats,
-                    targetRole: aiResponse.targetRole,
-                    dreamCompanies: aiResponse.dreamCompanies,
-                    confidenceScore: aiResponse.confidenceScore,
-                    reasoning: aiResponse.reasoning,
+                    targetRole: createAnalysisDto.targetRole,
+                    dreamCompanies: createAnalysisDto.dreamCompanies,
                     skillGaps: aiResponse.skillGaps || [],
                     careerPath: aiResponse.careerPath || [],
                 },
