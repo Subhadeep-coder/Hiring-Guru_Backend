@@ -5,6 +5,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { CustomAssessmentModule } from './custom-assessment/custom-assessment.module';
 import { HiringProcessModule } from './hiring-process/hiring-process.module';
 import { PredefinedAssessmentModule } from './predefined-assessment/predefined-assessment.module';
+import { RoundsModule } from './rounds/rounds.module';
+import { AiWebhookModule } from './ai-webhook/ai-webhook.module';
 
 @Module({
   imports: [
@@ -16,6 +18,8 @@ import { PredefinedAssessmentModule } from './predefined-assessment/predefined-a
     CustomAssessmentModule,
     HiringProcessModule,
     PredefinedAssessmentModule,
+    RoundsModule,
+    AiWebhookModule,
   ],
   providers: [],
 })
