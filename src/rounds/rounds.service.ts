@@ -41,13 +41,13 @@ export class RoundsService {
 
         try {
             // Prepare AI backend payload
-            const aiPayload = {
-                roundType: dto.roundType,
-                difficulty: dto.difficulty,
-                questionCount: dto.questionCount,
-                category: dto.category,
-                duration: dto.duration
-            };
+            // const aiPayload = {
+            //     roundType: dto.roundType,
+            //     difficulty: dto.difficulty,
+            //     questionCount: dto.questionCount,
+            //     category: dto.category,
+            //     duration: dto.duration
+            // };
 
             // Call AI backend to generate questions
             const aiBackendUrl = this.configService.get<string>('AI_BACKEND_URL');
@@ -64,16 +64,16 @@ export class RoundsService {
 
             // Store questions in database
             const questions = await Promise.all(
-                aiGeneratedQuestions.questions.map(async (q: any) => {
+                aiGeneratedQuestions['questions_with_answers'].map(async (q: any) => {
                     return await this.prisma.question.create({
                         data: {
                             roundId: dto.roundId,
-                            content: q.content,
-                            type: q.type,
-                            difficulty: q.difficulty,
+                            content: q.question,
+                            type: dto.type,
+                            difficulty: "easy",
                             category: q.category,
                             options: q.options || [],
-                            correctAnswer: q.correctAnswer,
+                            correctAnswer: q.answer,
                             generatedBy: 'ai-backend',
                             prompt: `Generated for ${dto.roundType} round with difficulty ${dto.difficulty}`
                         }
