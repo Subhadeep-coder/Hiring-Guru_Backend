@@ -115,10 +115,13 @@ export class AnalysisService {
     }
 
     async getAnalysisById(id: string): Promise<AnalysisResponseDto> {
-        const analysis = await this.prisma.userAnalysis.findUnique({
-            where: { id },
+        // console.log(id);
+        const analysis = await this.prisma.userAnalysis.findFirst({
+            where: { userId: id },
         });
-
+        console.log(await this.prisma.userAnalysis.findFirst({
+            where: { userId: id },
+        }));
         if (!analysis) {
             throw new NotFoundException('Analysis not found');
         }
