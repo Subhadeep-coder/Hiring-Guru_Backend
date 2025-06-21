@@ -5,6 +5,7 @@ export class User {
   profilePictureUrl?: string | null;
   authProvider: string;
   authProviderId: string;
+  githubUsername: string | null;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;

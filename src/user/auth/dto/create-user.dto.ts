@@ -18,6 +18,10 @@ export class CreateUserDto {
   authProviderId: string;
 
   @IsOptional()
+  @IsString()
+  githubUsername?: string | null;
+
+  @IsOptional()
   @IsBoolean()
   isActive?: boolean;
 }

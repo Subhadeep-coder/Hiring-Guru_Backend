@@ -49,6 +49,7 @@ export class AuthService {
         name: string;
         profilePictureUrl: string;
         authProvider: string;
+        githubUsername?: string; // Optional GitHub username
     }): Promise<User> {
         // Check if user exists by auth provider
         let user = await this.findByAuthProvider(
@@ -57,13 +58,26 @@ export class AuthService {
         );
 
         if (user) {
-            // Update last login
+            // Update last login and GitHub username if it's GitHub auth
+            if (oauthUser.authProvider === 'github' && oauthUser.githubUsername) {
+                // Update GitHub username if it has changed
+                if (user.githubUsername !== oauthUser.githubUsername) {
+                    await this.updateGithubUsername(user.id, oauthUser.githubUsername);
+                }
+            }
             return this.updateLastLogin(user.id);
+        }
+
+        // Check if GitHub username already exists (for GitHub auth only)
+        if (oauthUser.authProvider === 'github' && oauthUser.githubUsername) {
+            const existingGithubUser = await this.findByGithubUsername(oauthUser.githubUsername);
+            if (existingGithubUser) {
+                throw new Error('GitHub username already exists');
+            }
         }
 
         // Check if user exists by email (for account linking)
         user = await this.findByEmail(oauthUser.email);
-
         if (user) {
             // User exists with same email but different provider
             // You might want to handle account linking here
@@ -77,10 +91,29 @@ export class AuthService {
             avatar: oauthUser.profilePictureUrl,
             authProvider: oauthUser.authProvider,
             authProviderId: oauthUser.authProviderId,
+            githubUsername: oauthUser.githubUsername || null, // Set GitHub username or null
             isActive: true,
         };
 
         return this.create(createUserDto);
+    }
+
+
+    async findByGithubUsername(githubUsername: string): Promise<User | null> {
+        if (!githubUsername) return null;
+
+        return this.prisma.user.findFirst({
+            where: {
+                githubUsername: githubUsername,
+            },
+        });
+    }
+
+    async updateGithubUsername(userId: string, githubUsername: string): Promise<User> {
+        return this.prisma.user.update({
+            where: { id: userId },
+            data: { githubUsername },
+        });
     }
 
     async findUserById(id: string): Promise<User | null> {
