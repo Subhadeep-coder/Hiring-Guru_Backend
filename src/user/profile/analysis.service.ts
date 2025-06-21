@@ -52,6 +52,15 @@ export class AnalysisService {
                 },
             });
 
+            await this.prisma.user.update({
+                where: {
+                    id: userId,
+                },
+                data: {
+                    isCompleted: true
+                }
+            });
+
             return {
                 id: analysis.id,
                 targetRole: analysis.targetRole,

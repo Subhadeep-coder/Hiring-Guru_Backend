@@ -7,6 +7,7 @@ export class User {
   authProviderId: string;
   githubUsername: string | null;
   isActive: boolean;
+  isCompleted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

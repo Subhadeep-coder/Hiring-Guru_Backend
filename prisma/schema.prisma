@@ -42,6 +42,7 @@ model User {
   authProvider   String // 'google', 'github'
   authProviderId String
   isActive       Boolean @default(true)
+  isCompleted    Boolean @default(false)
 
   // User's custom assessment templates
   customAssessments CustomAssessment[]

@@ -25,17 +25,21 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
-  async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
+  async googleAuthRedirect(@Req() req: any, @Res() res: Response) {
     req.login(req.user!, (err) => {
       if (err)
-        res.redirect(`http://localhost:3000/?auth=error`);
+        res.redirect(`http://localhost:3000/login`);
       req.session.save((err) => {
         if (err) {
           console.error('Session save error:', err);
-          return res.redirect('http://localhost:3000/?auth=error');
+          return res.redirect('http://localhost:3000/login');
         }
 
-        return res.redirect('http://localhost:3000/dashboard?auth=success');
+        if (!req.user.isCompleted) {
+          return res.redirect('http://localhost:3000/onboarding');
+        }
+
+        return res.redirect('http://localhost:3000/dashboard');
       });
     })
   }
@@ -49,17 +53,21 @@ export class AuthController {
 
   @Get('github/callback')
   @UseGuards(GitHubAuthGuard)
-  async githubAuthRedirect(@Req() req: Request, @Res() res: Response) {
+  async githubAuthRedirect(@Req() req: any, @Res() res: Response) {
     req.login(req.user!, (err) => {
       if (err)
-        res.redirect(`http://localhost:3000/dashboard?auth=error`);
+        res.redirect(`http://localhost:3000/login`);
       req.session.save((err) => {
         if (err) {
           console.error('Session save error:', err);
-          return res.redirect('http://localhost:3000/customer?auth=error');
+          return res.redirect('http://localhost:3000/login');
         }
 
-        return res.redirect('http://localhost:3000/customer?auth=success');
+        if (!req.user.isCompleted) {
+          return res.redirect('http://localhost:3000/onboarding');
+        }
+
+        return res.redirect('http://localhost:3000/dashboard');
       });
     })
   }
