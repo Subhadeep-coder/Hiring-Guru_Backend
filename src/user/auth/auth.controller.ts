@@ -81,7 +81,7 @@ export class AuthController {
         });
       }
 
-      res.clearCookie('connect.sid');
+      res.clearCookie('hiring-guru-token');
       res.status(HttpStatus.OK).json({
         message: 'Logout successful',
       });
