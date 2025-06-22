@@ -6,7 +6,7 @@ import { AuthController } from './auth.controller';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { GitHubStrategy } from './strategies/github.strategy';
 import { SessionSerializer } from '@app/shared/serialization.provider';
-import { PrismaModule } from 'src/prisma/prisma.module';
+import { PrismaModule } from '../../../src/prisma/prisma.module';
 
 @Module({
   imports: [

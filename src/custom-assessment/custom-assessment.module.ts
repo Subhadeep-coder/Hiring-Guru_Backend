@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CustomAssessmentService } from './custom-assessment.service';
 import { CustomAssessmentController } from './custom-assessment.controller';
-import { PrismaModule } from 'src/prisma/prisma.module';
+import { PrismaModule } from '../../src/prisma/prisma.module';
 
 @Module({
   imports: [

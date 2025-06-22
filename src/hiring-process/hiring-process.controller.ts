@@ -7,7 +7,7 @@ import {
   UseGuards,
   Req
 } from '@nestjs/common';
-import { AuthenticatedGuard } from 'src/user/auth/guards/auth.guard';
+import { AuthenticatedGuard } from '../../src/user/auth/guards/auth.guard';
 import { HiringProcessService } from './hiring-process.service';
 import { StartHiringProcessDto } from './dto/start-hiring-process.dto';
 

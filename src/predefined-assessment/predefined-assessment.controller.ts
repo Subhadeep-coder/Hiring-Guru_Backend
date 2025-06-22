@@ -1,5 +1,5 @@
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
-import { AuthenticatedGuard } from 'src/user/auth/guards/auth.guard';
+import { AuthenticatedGuard } from '../../src/user/auth/guards/auth.guard';
 import { PredefinedAssessmentService } from './predefined-assessment.service';
 
 @Controller('predefined-assessments')

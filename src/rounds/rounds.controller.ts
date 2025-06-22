@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { RoundsService } from './rounds.service';
 import { GenerateQuestionsDto } from './dto/generate-questions.dto';
 import { SubmitAnswersDto } from './dto/submit-answers.dto';
-import { AuthenticatedGuard } from 'src/user/auth/guards/auth.guard';
+import { AuthenticatedGuard } from '../../src/user/auth/guards/auth.guard';
 
 @Controller('rounds')
 @UseGuards(AuthenticatedGuard)

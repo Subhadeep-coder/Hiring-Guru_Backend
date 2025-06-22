@@ -8,7 +8,7 @@ import {
   UseGuards,
   Req
 } from '@nestjs/common';
-import { AuthenticatedGuard } from 'src/user/auth/guards/auth.guard';
+import { AuthenticatedGuard } from '../../src/user/auth/guards/auth.guard';
 import { CustomAssessmentService } from './custom-assessment.service';
 import { CreateCustomAssessmentDto } from './dto/create-custom-assessment.dto';
 import { UpdateCustomAssessmentDto } from './dto/update-custom-assessment.dto';

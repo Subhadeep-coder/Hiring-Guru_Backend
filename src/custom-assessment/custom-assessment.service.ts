@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../../src/prisma/prisma.service';
 import { CreateCustomAssessmentDto } from './dto/create-custom-assessment.dto';
 import { UpdateCustomAssessmentDto } from './dto/update-custom-assessment.dto';
 

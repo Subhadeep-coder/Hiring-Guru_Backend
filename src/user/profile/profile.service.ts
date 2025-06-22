@@ -1,7 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateUserPreferencesDto } from './dto/create-user-preferences.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { UpdateUserPreferencesDto } from './dto/update-user-preferences.dto';
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../../src/prisma/prisma.service';
 
 @Injectable()
 export class ProfileService {

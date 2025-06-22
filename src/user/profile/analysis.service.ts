@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { AIService } from './ai.service';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../../../src/prisma/prisma.service';
 import { GithubApiService } from './github-api.service';
 import { AnalysisResponseDto, CreateAnalysisDto } from './dto/analysis.dto';
 
