@@ -5,7 +5,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { GitHubStrategy } from './strategies/github.strategy';
-import { SessionSerializer } from '@app/shared/serialization.provider';
+import { SessionSerializer } from '../../../libs/shared/src/serialization.provider';
 import { PrismaModule } from '../../../src/prisma/prisma.module';
 
 @Module({
