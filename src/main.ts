@@ -2,10 +2,10 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ExpressAdapter } from '@nestjs/platform-express';
-import * as express from 'express';
+import express from 'express';
 import session from 'express-session'; // Changed from * as session
-import * as passport from 'passport';
-import * as cookieParser from 'cookie-parser';
+import passport from 'passport';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import MongoStore from 'connect-mongo';
 
