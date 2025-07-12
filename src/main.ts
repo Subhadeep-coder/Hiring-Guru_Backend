@@ -1,19 +1,19 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ExpressAdapter } from '@nestjs/platform-express';
-import express from 'express';
+// import { ExpressAdapter } from '@nestjs/platform-express';
+// import express from 'express';
 import session from 'express-session'; // Changed from * as session
 import passport from 'passport';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import MongoStore from 'connect-mongo';
 
-// Create Express server instance for Vercel
-const server = express();
+// // Create Express server instance for Vercel
+// const server = express();
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
+  const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
   // CORS Configuration
@@ -62,16 +62,13 @@ async function bootstrap() {
   // Global Prefix
   app.setGlobalPrefix('api');
 
-  // Initialize the app for Vercel (don't listen on a port)
-  await app.init();
+  const port = configService.get('PORT') || 5000;
+  await app.listen(port);
 
-  console.log('🚀 Application initialized for Vercel deployment');
+  console.log(`🚀 Application is running on: http://localhost:${port}/api`);
+  console.log(`📊 Google OAuth: http://localhost:${port}/api/user/auth/google`);
+  console.log(`🐙 GitHub OAuth: http://localhost:${port}/api/user/auth/github`);
 }
 
 // Initialize the application
-bootstrap().catch((error) => {
-  console.error('Bootstrap failed:', error);
-});
-
-// Export the Express server for Vercel
-export default server;
+bootstrap();
